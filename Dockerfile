@@ -1,44 +1,24 @@
-FROM webratio/ant
-
-ENV DEBIAN_FRONTEND noninteractive
-
-RUN apt-get update -y && \
-    apt-get install -y software-properties-common && \
-    add-apt-repository ppa:webupd8team/java -y && \
-    apt-get update -y && \
-    echo oracle-java8-installer shared/accepted-oracle-license-v1-1 select true | /usr/bin/debconf-set-selections && \
-    apt-get install -y oracle-java8-installer && \
-    apt-get remove software-properties-common -y && \
-    apt-get autoremove -y && \
-    apt-get clean
-ENV JAVA_HOME /usr/lib/jvm/java-8-oracle
-
-# Installs i386 architecture required for running 32 bit Android tools
-RUN dpkg --add-architecture i386 && \
-    apt-get update -y && \
-    apt-get install -y libc6:i386 libncurses5:i386 libstdc++6:i386 lib32z1 && \
-    rm -rf /var/lib/apt/lists/* && \
-    apt-get autoremove -y && \
-    apt-get clean
-
-# Installs Android SDK
-ENV ANDROID_SDK_FILENAME android-sdk_r23.0.2-linux.tgz
-ENV ANDROID_SDK_URL http://dl.google.com/android/${ANDROID_SDK_FILENAME}
-ENV ANDROID_API_LEVELS android-15,android-16,android-17,android-18,android-19,android-20,android-21
-ENV ANDROID_BUILD_TOOLS_VERSION 21.1.0
-ENV ANDROID_HOME /tmp/android-sdk-linux
-ENV PATH ${PATH}:${ANDROID_HOME}/tools:${ANDROID_HOME}/platform-tools:${ANDROID_HOME}/build-tools/build-tools-${ANDROID_BUILD_TOOLS_VERSION}
-RUN cd /tmp && \
-    wget -q ${ANDROID_SDK_URL} && \
-    tar -xzf ${ANDROID_SDK_FILENAME} && \
-    rm ${ANDROID_SDK_FILENAME} && \
-    echo y | android update sdk --no-ui -a --filter tools,platform-tools,${ANDROID_API_LEVELS},build-tools-${ANDROID_BUILD_TOOLS_VERSION}
-
-RUN  set -x && \
-     echo ${PATH} && \
-     adb devices && \
-     ls ${ANDROID_HOME}/build-tools/${ANDROID_BUILD_TOOLS_VERSION}
-
-ENV PATH ${PATH}:${ANDROID_HOME}/build-tools/${ANDROID_BUILD_TOOLS_VERSION}
-# run aapt command
-RUN aapt v
+FROM centos
+MAINTAINER Victor ivictor@foxmail.com
+WORKDIR /root
+RUN rm -f /etc/yum.repos.d/*
+RUN  echo '[BASE]' > /etc/yum.repos.d/base.repo
+RUN  echo 'name=base' >> /etc/yum.repos.d/base.repo
+RUN  echo 'baseurl=http://192.168.244.132/yum/mnt' >> /etc/yum.repos.d/base.repo
+RUN  echo 'enabled=1' >> /etc/yum.repos.d/base.repo
+RUN  echo 'gpgcheck=0' >> /etc/yum.repos.d/base.repo
+ADD /mysql /mysql
+RUN yum  -y install java-1.8.0-openjdk wget httpd php php-mysqlnd /mysql/*
+RUN mysql_install_db --user=mysql
+ENV MYSQL_ROOT_PASSWORD=123456
+ENV MYCAT_USER mycat
+ENV MYCAT_PASS mycat
+RUN wget http://mirror.bit.edu.cn/apache/tomcat/tomcat-7/v7.0.64/bin/apache-tomcat-7.0.64.tar.gz
+RUN tar xvf apache-tomcat-7.0.64.tar.gz -C /usr/local/ && mv /usr/local/apache-tomcat-7.0.64/ /usr/local/tomcat
+RUN wget http://code.taobao.org/svn/openclouddb/downloads/old/MyCat-Sever-1.2/Mycat-server-1.2-GA-linux.tar.gz
+RUN mkdir /usr/local/mycat && tar xvf Mycat-server-1.2-GA-linux.tar.gz -C /usr/local/mycat && useradd mycat && \
+    chown -R mycat.mycat /usr/local/mycat && chmod a+x /usr/local/mycat/bin/*
+EXPOSE 8080 8066 9066
+COPY startup.sh /root/startup.sh
+RUN chmod a+x /root/startup.sh
+ENTRYPOINT /root/startup.sh
