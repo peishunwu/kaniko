@@ -5,4 +5,3 @@ RUN  rm -f ./index.html
 COPY index.html ./
 COPY init.sh /init.sh
 EXPOSE 80/tcp
-ENTRYPOINT  ["/bin/bash","/init.sh"]
