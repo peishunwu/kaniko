@@ -8,7 +8,7 @@ RUN  echo 'baseurl=http://192.168.244.132/yum/mnt' >> /etc/yum.repos.d/base.repo
 RUN  echo 'enabled=1' >> /etc/yum.repos.d/base.repo
 RUN  echo 'gpgcheck=0' >> /etc/yum.repos.d/base.repo
 #ADD /mysql /mysql
-RUN yum  -y install java-1.8.0-openjdk wget httpd php php-mysqlnd /mysql/*
+RUN yum  -y install java-1.8.0-openjdk wget httpd php php-mysqlnd
 RUN mysql_install_db --user=mysql
 ENV MYSQL_ROOT_PASSWORD=123456
 ENV MYCAT_USER mycat
