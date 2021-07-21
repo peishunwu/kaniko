@@ -26,7 +26,7 @@ WORKDIR /root/nginx
 ADD nginx.sh /nginx.sh
 RUN chmod 755 /nginx.sh
 #启动容器执行指令
-CMD ["/nginx.sh"]
+
 
 ADD jdk-8u91-linux-x64.tar.gz /usr/local
 WORKDIR /usr/local
@@ -95,7 +95,6 @@ EXPOSE 3306
 #直接设置运行启动脚本
 RUN echo -e "#!/bin/sh \nsystemctl enable mysqld" > /run.sh
 RUN chmod 755 /run.sh
-RUN sh /run.sh
-#启动容器时执行
-CMD ["init"]
+
+
 
