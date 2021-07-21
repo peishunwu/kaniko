@@ -1,22 +1,15 @@
-FROM ubuntu:15.04
+#first dockerfile
 
-MAINTAINER HuangHaohang <msdx.android@qq.com>
+FROM ubuntu:latest
+MAINTAINER xiaolin "1227117505@qq.com"
+# RUN apt-get update
+# RUN apt-get install -y vim 
 
-ENV ANDROID_HOME /android-sdk
-
-RUN apt update && apt install -y openjdk-8-jdk curl
-
-#如果遇到android-sdk里的命令无法执行，则需要安装32位的动态链接库。
-RUN apt install -y libc6-i386 lib32stdc++6 lib32gcc1 lib32ncurses5 lib32z1
-
-RUN curl -L https://packages.gitlab.com/install/repositories/runner/gitlab-ci-multi-runner/script.deb.sh | bash
-RUN apt-get install -y gitlab-ci-multi-runner
-
-# Ensure UTF-8 locale
-#COPY locale /etc/default/locale
-RUN locale-gen zh_CN.UTF-8 && \
-DEBIAN_FRONTEND=noninteractive dpkg-reconfigure locales
-RUN locale-gen zh_CN.UTF-8
-ENV LANG zh_CN.UTF-8
-ENV LANGUAGE zh_CN:zh
-ENV LC_ALL zh_CN.UTF-8
+# RUN apt-get install -y nginx
+# 以上执行会创建 3 层镜像。可简化为以下格式：
+RUN apt-get update && apt-get install -y vim &&  apt-get install -y nginx
+# 如上，以 && 符号连接命令，这样执行后，只会创建 1 层镜像。
+#指定运行该镜像的容器使用的端口为 80
+# docker run的时候 一定要加上 -P
+EXPOSE 80
+CMD ["nginx","-g","daemon off;"]
