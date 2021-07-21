@@ -41,4 +41,4 @@ RUN  set -x && \
 
 ENV PATH ${PATH}:${ANDROID_HOME}/build-tools/${ANDROID_BUILD_TOOLS_VERSION}
 # run aapt command
-RUN aapt v
+# RUN aapt v
