@@ -1,4 +1,4 @@
-FROM CentOS:7
+FROM centos:centos7
 #维护该镜像的用户信息
 MAINTAINER lokott@123.com
 #指令集
