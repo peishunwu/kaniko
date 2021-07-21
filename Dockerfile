@@ -1,100 +1,44 @@
-FROM centos:centos7
-#维护该镜像的用户信息
-MAINTAINER lokott@123.com
-#指令集
-#更新及安装相关工具
-RUN yum update -y
-RUN yum install -y wget lsof telnet net-tools gcc gcc-c++ make pcre pcre-devel zlib zlib-devel
-#从官网上下载nginx软件包源并解压
-RUN wget http://nginx.org/download/nginx-1.16.1.tar.gz
-RUN tar zxf nginx-1.16.1.tar.gz
-#创建nginx用户
-RUN useradd -M -s /sbin/nologin nginx
-#指定后续RUN指令的工作目录
-WORKDIR nginx-1.16.1
-#配置参数以及编译nginx
-RUN ./configure --prefix=/usr/local/nginx --user=nginx --group=nginx --with-http_stub_status_module
-RUN make && make install
-#ENV PATH /usr/local/nginx/sbin:$PATH
-#端口设置
-EXPOSE 80
-EXPOSE 443
-#以非daemon方式运行
-RUN echo "daemon off;" >> /usr/local/nginx/conf/nginx.conf
-#切换工作目录
-WORKDIR /root/nginx
-ADD nginx.sh /nginx.sh
-RUN chmod 755 /nginx.sh
-#启动容器执行指令
+FROM webratio/ant
 
+ENV DEBIAN_FRONTEND noninteractive
 
-ADD jdk-8u91-linux-x64.tar.gz /usr/local
-WORKDIR /usr/local
-RUN mv jdk1.8.0_91 /usr/local/Java
-ENV JAVA_HOME /usr/local/java
-ENV JAVA_BIN /usr/local/java/bin
-ENV JRE_HOME /usr/local/java/jre
-ENV PATH $PATH:/usr/local/java/bin:/usr/local/java/jre/bin
-ENV CLASSPATH /usr/local/java/jre/bin:/usr/local/java/lib:/usr/local/java/jre/lib/charsets.jar
-ADD apache-tomcat-9.0.16.tar.gz /usr/local
-WORKDIR /usr/local
-RUN mv apache-tomcat-9.0.16 /usr/local/tomcat8
-EXPOSE 8080
-ENTRYPOINT ["/usr/local/tomcat8/bin/catalina.sh","run"]
+RUN apt-get update -y && \
+    apt-get install -y software-properties-common && \
+    add-apt-repository ppa:webupd8team/java -y && \
+    apt-get update -y && \
+    echo oracle-java8-installer shared/accepted-oracle-license-v1-1 select true | /usr/bin/debconf-set-selections && \
+    apt-get install -y oracle-java8-installer && \
+    apt-get remove software-properties-common -y && \
+    apt-get autoremove -y && \
+    apt-get clean
+ENV JAVA_HOME /usr/lib/jvm/java-8-oracle
 
-RUN yum -y install \
-ncurses \
-ncurses-devel \
-bison \
-cmake \
-make \
-gcc \
-gcc-c++
-#创建mysql用户
-RUN useradd -s /sbin/nologin mysql
-#复制软件包到指定目录（将会自动解压）
-ADD mysql-boost-5.7.20.tar.gz /usr/local/src
-#指定工作目录
-WORKDIR /usr/local/src/mysql-5.7.20/
-#cmake配置及编译安装
-RUN cmake \
--DCMAKE_INSTALL_PREFIX=/usr/local/mysql \
--DMYSQL_UNIX_ADDR=/usr/local/mysql/mysql.sock \
--DSYSCONFDIR=/etc \
--DSYSTEMD_PID_DIR=/usr/local/mysql \
--DDEFAULT_CHARSET=utf8 \
--DDEFAULT_COLLATION=utf8_general_ci \
--DWITH_INNOBASE_STORAGE_ENGINE=1 \
--DWITH_ARCHIVE_STORAGE_ENGINE=1 \
--DWITH_BLACKHOLE_STORAGE_ENGINE=1 \
--DWITH_PERFSCHEMA_STORAGE_ENGINE=1 \
--DMYSQL_DATADIR=/usr/local/mysql/data \
--DWITH_BOOST=boost \
--DWITH_SYSTEMD=1 && make && make install
-#更改mysql目录属主属组
-RUN chown -R mysql:mysql /usr/local/mysql/
-#删除默认安装的my.cnf文件
-RUN rm -rf /etc/my.cnf
-#复制一份my.cnf到etc目录下
-ADD my.cnf /etc
-#更改该文件权限
-RUN chown mysql:mysql /etc/my.cnf
-#设置环境变量，命令目录及库文件目录
-ENV PATH=/usr/local/mysql/bin:/usr/local/mysql/lib:$PATH
-#指定工作目录
-WORKDIR /usr/local/mysql/
-#初始化设置
-RUN bin/mysqld \
---initialize-insecure \
---user=mysql \
---basedir=/usr/local/mysql \
---datadir=/usr/local/mysql/data
-#优化启动方式
-RUN cp /usr/local/mysql/usr/lib/systemd/system/mysqld.service /usr/lib/systemd/system/
-EXPOSE 3306
-#直接设置运行启动脚本
-RUN echo -e "#!/bin/sh \nsystemctl enable mysqld" > /run.sh
-RUN chmod 755 /run.sh
+# Installs i386 architecture required for running 32 bit Android tools
+RUN dpkg --add-architecture i386 && \
+    apt-get update -y && \
+    apt-get install -y libc6:i386 libncurses5:i386 libstdc++6:i386 lib32z1 && \
+    rm -rf /var/lib/apt/lists/* && \
+    apt-get autoremove -y && \
+    apt-get clean
 
+# Installs Android SDK
+ENV ANDROID_SDK_FILENAME android-sdk_r23.0.2-linux.tgz
+ENV ANDROID_SDK_URL http://dl.google.com/android/${ANDROID_SDK_FILENAME}
+ENV ANDROID_API_LEVELS android-15,android-16,android-17,android-18,android-19,android-20,android-21
+ENV ANDROID_BUILD_TOOLS_VERSION 21.1.0
+ENV ANDROID_HOME /tmp/android-sdk-linux
+ENV PATH ${PATH}:${ANDROID_HOME}/tools:${ANDROID_HOME}/platform-tools:${ANDROID_HOME}/build-tools/build-tools-${ANDROID_BUILD_TOOLS_VERSION}
+RUN cd /tmp && \
+    wget -q ${ANDROID_SDK_URL} && \
+    tar -xzf ${ANDROID_SDK_FILENAME} && \
+    rm ${ANDROID_SDK_FILENAME} && \
+    echo y | android update sdk --no-ui -a --filter tools,platform-tools,${ANDROID_API_LEVELS},build-tools-${ANDROID_BUILD_TOOLS_VERSION}
 
+RUN  set -x && \
+     echo ${PATH} && \
+     adb devices && \
+     ls ${ANDROID_HOME}/build-tools/${ANDROID_BUILD_TOOLS_VERSION}
 
+ENV PATH ${PATH}:${ANDROID_HOME}/build-tools/${ANDROID_BUILD_TOOLS_VERSION}
+# run aapt command
+RUN aapt v
